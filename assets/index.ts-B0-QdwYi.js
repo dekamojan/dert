@@ -32,8 +32,14 @@ j=async(e,t,n,r)=>{
   if(0===i(o.addImageButton).length)return k("Ignore upload single image because no add image button found"),!1;
   await y(o.addImageButton,`Open upload (image ${t+1})`);
 
-  const s=e.images?.[t]?.name??"",
-        a=`${o.virtuosoItemList}:first`; // TIDAK pakai :contains(nama) lagi — judul di DOM terpotong "…"
+  let s=e.images?.[t]?.name??"";
+  if(!s && e.images?.[t]?.base64){
+    const b=e.images[t].base64;
+    s = `img_${b.length}_${b.slice(-10).replace(/[^a-zA-Z0-9]/g,"")}.png`;
+    e.images[t].name = s;
+  }
+  const searchName = s.replace(/\.[^/.]+$/, "");
+  const a=`${o.virtuosoItemList}:first`; 
 
   const selectFound=async()=>{
     await y(`${a} img`,`Preview asset for "${s}"`);
@@ -43,15 +49,17 @@ j=async(e,t,n,r)=>{
     return!0;
   };
 
-  // 1) CEK DULU lewat kotak pencarian (percayakan filtering ke search box, bukan cocokkan teks DOM)
   await y(o.searchUploadedImage,"Click search input");
   const c=i(o.searchUploadedImage);
-  if(c.length>0&&s!==""){
+  if(c.length>0&&searchName!==""){
     const el=c.get(0);
-    el.value=s,el.dispatchEvent(new Event("input",{bubbles:!0}));
+    el.focus();
+    document.execCommand('selectAll', false, null);
+    document.execCommand('insertText', false, searchName);
+    el.dispatchEvent(new Event("input",{bubbles:!0}));
     for(let w=0;w<8;w++){await p(500);if(i(a).length>0)break}
   }
-  if(s!==""&&i(a).length>0)
+  if(searchName!==""&&i(a).length>0)
     return I(`\u2705 Found existing asset for "${s}"`),await selectFound();
 
   // 2) TIDAK KETEMU -> baru klik "Upload media" (sidebar kiri) & upload beneran
